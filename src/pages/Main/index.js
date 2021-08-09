@@ -21,31 +21,87 @@ import { Tabs } from '../../components/Tabs';
 import { Menu } from '../../components/Menu';
 
 export default function Main() {
+  let offset = 0;
+
+  const translateY = new Animated.Value(0);
+  const animatedEvent = Animated.event(
+    [
+      {
+        nativeEvent: {
+          translationY: translateY,
+        }
+      }
+    ],
+    { useNativeDriver: true },
+  )
+
+  function onHandlerStateChange(event) {
+    if (event.nativeEvent.oldState === State.ACTIVE) {
+      let opened = false; // Armazena se o menu esta aberto ou nao
+      const { translationY } = event.nativeEvent;
+
+      offset += translationY; // Transformando o valor arrastado no trasnlate.
+
+      if (translationY >= 100) {
+        opened = true;
+        
+      } else {
+        translateY.setValue(offset);
+        translateY.setOffset(0)
+        offset = 0;
+      }
+      
+      Animated.timing(translateY, {
+        toValue: opened ? 380 : 0,
+        duration: 200,
+        useNativeDriver: true,
+      }).start(() => {
+        offset = opened ? 380 : 0;
+        translateY.setOffset(offset);
+        translateY.setValue(0);
+      });
+    }
+  }
+
   return (
     <Container>
       <Header />
 
       <Content>
-        <Menu />
+        <Menu translateY={translateY} />
 
-        <Card>
-          <CardHeader>
-            <Icon name="attach-money" size={28} color="#666" />
-            <Icon name="visibility-off" size={28} color="#666" />
-          </CardHeader>
-          <CardContent>
-            <Title>Saldo disponível</Title>
-            <Description>R$ 82.425,54</Description>
-          </CardContent>
-          <CardFooter>
-            <Annotation>
-              Transferencia de R$ 1.000,00 recebida de Sérgio Filho hoje às 06:00 horas.
-            </Annotation>
-          </CardFooter>
-        </Card>
+        <PanGestureHandler
+          onGestureEvent={animatedEvent}
+          onHandlerStateChange={onHandlerStateChange}
+        >
+          <Card style={{
+            transform: [{
+              translateY: translateY.interpolate({
+                inputRange: [-350, 0, 380],
+                outputRange: [-50, 0, 380],
+                extrapolate: 'clamp'
+              }),
+            }]
+          }}>
+            <CardHeader>
+              <Icon name="attach-money" size={28} color="#666" />
+              <Icon name="visibility-off" size={28} color="#666" />
+            </CardHeader>
+            <CardContent>
+              <Title>Saldo disponível</Title>
+              <Description>R$ 82.425,54</Description>
+            </CardContent>
+            <CardFooter>
+              <Annotation>
+                Transferencia de R$ 1.000,00 recebida de Sérgio Filho hoje às 06:00 horas.
+              </Annotation>
+            </CardFooter>
+          </Card>
+        </PanGestureHandler>
+
       </Content>
 
-      <Tabs />
+      <Tabs translateY={translateY} />
     </Container>
   );
 }
